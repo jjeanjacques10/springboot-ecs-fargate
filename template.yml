@@ -83,6 +83,16 @@ Resources:
       LogGroupName: !Sub "${FeatureName}-${MicroServiceName}"
       RetentionInDays: 7
 
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${EcsClusterName}"
+      CapacityProviders:
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+
   TaskDefinition:
     Type: "AWS::ECS::TaskDefinition"
     Properties:
