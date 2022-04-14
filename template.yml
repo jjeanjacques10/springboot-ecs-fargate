@@ -247,11 +247,12 @@ Resources:
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: LoadBalancer
     Properties:
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
-      LoadBalancerArn: !Ref LoadBalancer
+      LoadBalancerArn: !GetAtt LoadBalancer.Arn
       Port: !Ref ListenerContainerPort
       Protocol: TCP
 
