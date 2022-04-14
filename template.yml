@@ -226,7 +226,7 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
+          AssignPublicIp: ENABLED
           SecurityGroups:
             - !Ref SecurityGroupDefault
             - !Ref SecurityGroup
