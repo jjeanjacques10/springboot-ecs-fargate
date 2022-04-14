@@ -41,12 +41,19 @@ Parameters:
     Type: Number
     Default: 2
     MinValue: 0 
-  VPC:
-    Type: AWS::EC2::VPC::Id
-  SubnetA:
-    Type: AWS::EC2::Subnet::Id
-  SubnetB:
-    Type: AWS::EC2::Subnet::Id
+  VPCID:
+    Description: ID da VPC
+    Type:  AWS::EC2::VPC::Id
+  VPCCIDR:
+    Description: CIDR da VPC para configuracao do SG dos servicos
+    Type:  String
+    Default: '0.0.0.0/0'
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+  PrivateSubnets:
+    Type:  List<AWS::EC2::Subnet::Id>    
+  SecurityGroupDefault: 
+    Description: 'Securtity Group Default da Conta'
+    Type: AWS::EC2::SecurityGroup::Id
   ContainerPort:
     Type: Number
     Default: 80
@@ -78,7 +85,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "${FeatureName}-${MicroServiceName}"
-      RetentionInDays: !Ref CloudWatchRetentionInDays
+      RetentionInDays: 7
 
   Cluster:
     Type: AWS::ECS::Cluster
@@ -241,6 +248,14 @@ Resources:
           Value: '5'
       TargetType: ip
 
+  DigimonAPIVpcLink:
+    Type: AWS::ApiGateway::VpcLink
+    Properties:
+      Description: "VpcLink Validacao Limite"
+      Name: !Sub "${MicroServiceName}-vpc-link"
+      TargetArns:
+        - !Ref LoadBalancer
+
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -259,11 +274,9 @@ Resources:
       Scheme: internal
       LoadBalancerAttributes:
         - Key: 'load_balancing.cross_zone.enabled'
-          Value: !Ref LoadBalancingCrossZoneEnabled
+          Value: 'false'
       Subnets: !Ref PrivateSubnets
       Tags:
-        - Key: tech-team-email
-          Value: !Ref TechTeamContactEmail
         - Key: LoadBalancerType
           Value: VPCLink
 
