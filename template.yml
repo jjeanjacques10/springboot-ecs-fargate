@@ -16,6 +16,9 @@ Parameters:
   ServiceName:
     Type: String
     Default: DigimonService 
+  EcsClusterName:
+    Type: String
+    Default: 'digimon-cluster'
   Image:
     Type: String
     Default: 416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi:latest
@@ -90,7 +93,7 @@ Resources:
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: 'digi-cluster'
+      ClusterName: !Ref EcsClusterName
       CapacityProviders:
         - FARGATE_SPOT
       DefaultCapacityProviderStrategy:
