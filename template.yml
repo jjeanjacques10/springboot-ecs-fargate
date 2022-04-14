@@ -75,15 +75,6 @@ Parameters:
   EnvironmentMachine:
     Description: Variaveis de ambiente da maquina
     Type: String
-  AppDynamicsAgentAccountAccessKey:
-    Description: Access Key do Agente do AppDynamics
-    Type: String
-  AppDynamicsControllerHostName:
-    Description: Hostname do AppDy por ambiente
-    Type: String
-  AppDynamicsAgentAccountName:
-    Description: Account name App Dynamics
-    Type: String
   LoadBalancerARN:
     Type: String
     Default: ''
@@ -107,33 +98,6 @@ Resources:
           Memory: !Ref ContainerMemory
           MemoryReservation: !Ref ContainerMemoryReservation
           Essential: true
-          Environment:
-            - Name: AWS_ACCESS_KEY_ID
-              Value: ""
-            - Name: AWS_SECRET_ACCESS_KEY
-              Value: ""
-            - Name: AWS_REGION
-              Value: "sa-east-1"
-            - Name: AWS_DEFAULT_REGION
-              Value: "sa-east-1"
-            - Name: APPDYNAMICS_AGENT_ACCOUNT_ACCESS_KEY
-              Value: !Ref AppDynamicsAgentAccountAccessKey
-            - Name: APPDYNAMICS_CONTROLLER_HOST_NAME
-              Value: !Ref AppDynamicsControllerHostName
-            - Name: APPDYNAMICS_AGENT_APPLICATION_NAME
-              Value: !Sub "DY5-${FeatureName}-${MicroServiceName}-${Environment}"
-            - Name: APPDYNAMICS_AGENT_TIER_NAME
-              Value: !Sub "DY5-${FeatureName}-${MicroServiceName}-${Environment}"
-            - Name: APPDYNAMICS_JAVA_AGENT_REUSE_NODE_NAME
-              Value: true
-            - Name: APPDYNAMICS_JAVA_AGENT_REUSE_NODE_NAME_PREFIX
-              Value: Container
-            - Name: APPDYNAMICS_AGENT_ACCOUNT_NAME
-              Value: !Ref AppDynamicsAgentAccountName
-            - Name: APPDYNAMICS_CONTROLLER_SSL_ENABLED
-              Value: true
-            - Name: APPDYNAMICS_CONTROLLER_PORT
-              Value: 443
           LogConfiguration:
             LogDriver: awslogs
             Options:
