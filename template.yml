@@ -1,18 +1,52 @@
 Description: An example CloudFormation template for Fargate.
 
 Parameters:
+  MicroServiceName:
+    Description: Nome do micro servico
+    Type:  String
+    Default: 'digimonapi'
+  FeatureName:
+    Description: Nome da feature
+    Type:  String
+    Default: 'springboot'
+  ContainerName: 
+    Description: Container Name
+    Type: String
+    Default: 'digimon'
+  ServiceName:
+    Type: String
+    Default: DigimonService 
+  Image:
+    Type: String
+    Default: 416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi:latest
+  ContainerCpu:
+    Description: The number of cpu units reserved for the container.
+    Type: Number
+    Default: 256
+  ContainerMemory:
+    Description: The amount (in MiB) of memory to present to the container.
+    Type: Number
+    Default: 512
+  ContainerMemoryReservation:
+    Description: The soft limit (in MiB) of memory to reserve for the container.
+    Type: Number
+    Default: 512
+  MinNumberOfTasks:
+    Description: Minimum number of tasks to launch for the service
+    Type: Number
+    Default: 1
+    MinValue: 0
+  MaxNumberOfTasks:
+    Description: Maximum number of tasks to launch for the service
+    Type: Number
+    Default: 2
+    MinValue: 0 
   VPC:
     Type: AWS::EC2::VPC::Id
   SubnetA:
     Type: AWS::EC2::Subnet::Id
   SubnetB:
     Type: AWS::EC2::Subnet::Id
-  Image:
-    Type: String
-    Default: 416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi:latest
-  ServiceName:
-    Type: String
-    Default: DigimonService
   ContainerPort:
     Type: Number
     Default: 80
@@ -34,8 +68,18 @@ Parameters:
   AutoScalingTargetValue:
     Type: Number
     Default: 90
+  ListenerContainerPort:
+    Description: Listening port for container
+    Type: Number
+    Default: 80
 
 Resources:
+  CloudWatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "${FeatureName}-${MicroServiceName}"
+      RetentionInDays: !Ref CloudWatchRetentionInDays
+
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
@@ -49,214 +93,224 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     # Makes sure the log group is created before it is used.
-    DependsOn: LogGroup
+    DependsOn: CloudWatchLogGroup
     Properties:
-      # Name of the task definition. Subsequent versions of the task definition are grouped together under this name.
-      Family: !Join ['', [!Ref ServiceName, TaskDefinition]]
-      # awsvpc is required for Fargate
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      # 256 (.25 vCPU) - Available memory values: 0.5GB, 1GB, 2GB
-      # 512 (.5 vCPU) - Available memory values: 1GB, 2GB, 3GB, 4GB
-      # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
-      # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
-      # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
-      Cpu: 256
-      # 0.5GB, 1GB, 2GB - Available cpu values: 256 (.25 vCPU)
-      # 1GB, 2GB, 3GB, 4GB - Available cpu values: 512 (.5 vCPU)
-      # 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB - Available cpu values: 1024 (1 vCPU)
-      # Between 4GB and 16GB in 1GB increments - Available cpu values: 2048 (2 vCPU)
-      # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
-      Memory: 0.5GB
-      # A role needed by ECS.
-      # "The ARN of the task execution role that containers in this task can assume. All containers in this task are granted the permissions that are specified in this role."
-      # "There is an optional task execution IAM role that you can specify with Fargate to allow your Fargate tasks to make API calls to Amazon ECR."
-      ExecutionRoleArn: !Ref ExecutionRole
-      # "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that grants containers in the task permission to call AWS APIs on your behalf."
-      TaskRoleArn: !Ref TaskRole
       ContainerDefinitions:
-        - Name: !Ref ServiceName
-          Image: !Ref Image
+        - Name: !Sub ${ContainerName}
+          Image: !Sub ${Image}
           PortMappings:
-            - ContainerPort: !Ref ContainerPort
-          # Send logs to CloudWatch Logs
+            - ContainerPort: !Ref ListenerContainerPort
+          Cpu: !Ref ContainerCpu
+          Memory: !Ref ContainerMemory
+          MemoryReservation: !Ref ContainerMemoryReservation
+          Essential: true
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-region: !Ref AWS::Region
-              awslogs-group: !Ref LogGroup
-              awslogs-stream-prefix: ecs
+              awslogs-region: !Sub "${AWS::Region}"
+              awslogs-group: !Sub "${FeatureName}-${MicroServiceName}"
+              awslogs-stream-prefix: !Sub "${FeatureName}-${MicroServiceName}"
+      NetworkMode: awsvpc
+      Memory: !Ref ContainerMemoryReservation
+      Cpu: !Ref ContainerCpu
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !Ref TaskExecutionRole
+      RequiresCompatibilities:
+        - "FARGATE"
+    
 
-  # A role needed by ECS
-  ExecutionRole:
+  ## For Fargate
+  TaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Join ['', [!Ref ServiceName, ExecutionRole]]
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: !Sub "${FeatureName}-${MicroServiceName}-AmazonECSTaskExecutionRolePolicy"
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  # Allow the ECS Tasks to download images from ECR
+                  - 'ecr:GetAuthorizationToken'
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:BatchGetImage'
+                  # Allow the ECS tasks to upload logs to CloudWatch
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogStreams'
+                Resource: '*'
+        - PolicyName: !Sub "${FeatureName}-${MicroServiceName}-ECS"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ecs:DiscoverPollEndpoint'
+                  - 'ecs:RegisterContainerInstance'
+                  - 'ecs:SubmitContainerStateChange'
+                  - 'ecs:SubmitTaskStateChange'
+                  - 'ecs:ListContainerInstances'
+                  - 'ecs:Poll'
+                  - 'ecs:StartTelemetrySession'
+                  - 'ecs:UpdateContainerInstancesState'
+                  - 'ecs:ListTasks'
+                  - 'ecs:DescribeContainerInstances'
+                Resource: '*'
+        - PolicyName: !Sub '${FeatureName}-${MicroServiceName}-cloudwatch'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:PutMetricData'
+                Resource: '*'
 
-  # A role for the containers
-  TaskRole:
-    Type: AWS::IAM::Role
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
     Properties:
-      RoleName: !Join ['', [!Ref ServiceName, TaskRole]]
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: 'sts:AssumeRole'
-      # ManagedPolicyArns:
-      #   -
-      # Policies:
-      #   -
-
-  # A role needed for auto scaling
-  AutoScalingRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Join ['', [!Ref ServiceName, AutoScalingRole]]
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole'
-
-  ContainerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: !Join ['', [!Ref ServiceName, ContainerSecurityGroup]]
-      VpcId: !Ref VPC
+      GroupName: !Sub '${AWS::StackName}'
+      GroupDescription: 'nlb-digimon-api'
+      VpcId: !Ref VPCID
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: !Ref ContainerPort
-          ToPort: !Ref ContainerPort
-          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+          Description: 'Conexao com o NLB'
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref VPCCIDR
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: 'Saida para todas as portas'
+          IpProtocol: "-1"
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}'
 
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: !Join ['', [!Ref ServiceName, LoadBalancerSecurityGroup]]
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: !Ref LoadBalancerPort
-          ToPort: !Ref LoadBalancerPort
-          CidrIp: 0.0.0.0/0
 
+#========================================================
   Service:
-    Type: AWS::ECS::Service
-    # This dependency is needed so that the load balancer is setup correctly in time
-    DependsOn:
-      - ListenerHTTP
+    DependsOn: Listener
+    Type: "AWS::ECS::Service"
     Properties:
-      ServiceName: !Ref ServiceName
-      Cluster: !Ref Cluster
-      TaskDefinition: !Ref TaskDefinition
+      ServiceName: !Sub service-${FeatureName}-${MicroServiceName}
+      Cluster: !Ref EcsClusterName
       DeploymentConfiguration:
         MinimumHealthyPercent: 100
         MaximumPercent: 200
-      DesiredCount: 2
-      # This may need to be adjusted if the container takes a while to start up
-      HealthCheckGracePeriodSeconds: 30
+      DesiredCount: 1
+      HealthCheckGracePeriodSeconds: 10
       LaunchType: FARGATE
-      CapacityProviderStrategy:
-        - CapacityProvider: FARGATE_SPOT
-          Weight: 10
+      PlatformVersion: '1.4.0'
+      LoadBalancers:
+        - ContainerName: !Sub ${ContainerName}
+          ContainerPort: !Ref ListenerContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      SchedulingStrategy: REPLICA
+      TaskDefinition: !Ref TaskDefinition
       NetworkConfiguration:
         AwsvpcConfiguration:
-          # change to DISABLED if you're using private subnets that have access to a NAT gateway
-          AssignPublicIp: ENABLED
-          Subnets:
-            - !Ref SubnetA
-            - !Ref SubnetB
+          AssignPublicIp: DISABLED
           SecurityGroups:
-            - !Ref ContainerSecurityGroup
-      LoadBalancers:
-        - ContainerName: !Ref ServiceName
-          ContainerPort: !Ref ContainerPort
-          TargetGroupArn: !Ref TargetGroup
+            - !Ref SecurityGroupDefault
+            - !Ref SecurityGroup
+          Subnets: !Ref PrivateSubnets
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
+      Port: !Ref ListenerContainerPort
+      Protocol: TCP
       HealthCheckIntervalSeconds: 10
-      # will look for a 200 status code by default unless specified otherwise
-      HealthCheckPath: !Ref HealthCheckPath
-      HealthCheckTimeoutSeconds: 5
-      UnhealthyThresholdCount: 2
+      HealthCheckPath: '/actuator/health'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 6
       HealthyThresholdCount: 2
-      Name: !Join ['', [!Ref ServiceName, TargetGroup]]
-      Port: !Ref ContainerPort
-      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200-399'
+      VpcId: !Ref VPCID
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
-          Value: 60 # default is 300
+          Value: '5'
       TargetType: ip
-      VpcId: !Ref VPC
 
-  ListenerHTTP:
+  Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref TargetGroup
-          Type: forward
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
       LoadBalancerArn: !Ref LoadBalancer
-      Port: !Ref LoadBalancerPort
-      Protocol: HTTP
+      Port: !Ref ListenerContainerPort
+      Protocol: TCP
 
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
+      Name: !Sub 'nlb-${MicroServiceName}'
+      Type: network
+      Scheme: internal
       LoadBalancerAttributes:
-        # this is the default, but is specified here in case it needs to be changed
-        - Key: idle_timeout.timeout_seconds
-          Value: 60
-      Name: !Join ['', [!Ref ServiceName, LoadBalancer]]
-      # "internal" is also an option
-      Scheme: internet-facing
-      SecurityGroups:
-        - !Ref LoadBalancerSecurityGroup
-      Subnets:
-        - !Ref SubnetA
-        - !Ref SubnetB
+        - Key: 'load_balancing.cross_zone.enabled'
+          Value: !Ref LoadBalancingCrossZoneEnabled
+      Subnets: !Ref PrivateSubnets
+      Tags:
+        - Key: tech-team-email
+          Value: !Ref TechTeamContactEmail
+        - Key: LoadBalancerType
+          Value: VPCLink
 
-  LogGroup:
-    Type: AWS::Logs::LogGroup
+  ScalingRole:
+    Type: "AWS::IAM::Role"
     Properties:
-      LogGroupName: !Join ['', [/ecs/, !Ref ServiceName, TaskDefinition]]
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: adjust-service-desired-count
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: ecs:UpdateService
+                Resource: !Ref Service
 
-  AutoScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
+  ScalableTarget:
+    Type: "AWS::ApplicationAutoScaling::ScalableTarget"
     Properties:
-      MinCapacity: !Ref MinContainers
-      MaxCapacity: !Ref MaxContainers
-      ResourceId: !Join ['/', [service, !Ref Cluster, !GetAtt Service.Name]]
+      MinCapacity: !Ref MinNumberOfTasks
+      MaxCapacity: !Ref MaxNumberOfTasks
+      ResourceId: !Join
+        - "/"
+        - - service
+          - !Ref EcsClusterName
+          - !GetAtt Service.Name
+      RoleARN: !GetAtt ScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
       ServiceNamespace: ecs
-      # "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that allows Application Auto Scaling to modify your scalable target."
-      RoleARN: !GetAtt AutoScalingRole.Arn
 
-  AutoScalingPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+  ScalingPolicy:
+    Type: "AWS::ApplicationAutoScaling::ScalingPolicy"
     Properties:
-      PolicyName: !Join ['', [!Ref ServiceName, AutoScalingPolicy]]
+      PolicyName: ScaleWithCpu
       PolicyType: TargetTrackingScaling
-      ScalingTargetId: !Ref AutoScalingTarget
+      ScalingTargetId: !Ref ScalableTarget
       TargetTrackingScalingPolicyConfiguration:
+       # Keep things at or lower than 70% CPU utilization, for example
+        TargetValue: 70
+        ScaleInCooldown: 120
+        ScaleOutCooldown: 60
         PredefinedMetricSpecification:
           PredefinedMetricType: ECSServiceAverageCPUUtilization
-        ScaleInCooldown: 10
-        ScaleOutCooldown: 10
-        # Keep things at or lower than 50% CPU utilization, for example
-        TargetValue: !Ref AutoScalingTargetValue
