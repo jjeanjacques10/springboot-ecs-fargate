@@ -1,3 +1,4 @@
+AWSTemplateFormatVersion: 2010-09-09
 Description: An example CloudFormation template for Fargate.
 
 Parameters:
@@ -203,8 +204,6 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}'
 
-
-#========================================================
   Service:
     DependsOn: Listener
     Type: "AWS::ECS::Service"
