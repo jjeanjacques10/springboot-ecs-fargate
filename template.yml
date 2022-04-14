@@ -1,28 +1,30 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: An example CloudFormation template for Fargate.
+Description: ECS Fargate Template
 
 Parameters:
-  MicroServiceName:
-    Description: Nome do micro servico
-    Type:  String
-    Default: 'digimonapi'
-  FeatureName:
-    Description: Nome da feature
-    Type:  String
-    Default: 'springboot'
+  DesiredNumberOfTasks:
+    Description: Number of tasks to launch for the service
+    Type: Number
+    Default: 1
+    MinValue: 1
+  MinNumberOfTasks:
+    Description: Minimum number of tasks to launch for the service
+    Type: Number
+    Default: 1
+    MinValue: 0
+  MaxNumberOfTasks:
+    Description: Maximum number of tasks to launch for the service
+    Type: Number
+    Default: 2
+    MinValue: 0    
+  ListenerContainerPort:
+    Description: Listening port for container
+    Type: Number
+    Default: 80
   ContainerName: 
     Description: Container Name
     Type: String
-    Default: 'digimon'
-  ServiceName:
-    Type: String
-    Default: DigimonService 
-  EcsClusterName:
-    Type: String
-    Default: 'digimon-cluster'
-  Image:
-    Type: String
-    Default: 416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi:latest
+    Default: 'digimonapi'
   ContainerCpu:
     Description: The number of cpu units reserved for the container.
     Type: Number
@@ -35,16 +37,24 @@ Parameters:
     Description: The soft limit (in MiB) of memory to reserve for the container.
     Type: Number
     Default: 512
-  MinNumberOfTasks:
-    Description: Minimum number of tasks to launch for the service
+  FeatureName:
+    Description: Nome da feature
+    Type:  String
+    Default: 'springboot'
+  MicroServiceName:
+    Description: Nome do micro servico
+    Type:  String
+    Default: 'digimonapi'
+  DevToolsAccount:
     Type: Number
-    Default: 1
-    MinValue: 0
-  MaxNumberOfTasks:
-    Description: Maximum number of tasks to launch for the service
-    Type: Number
-    Default: 2
-    MinValue: 0 
+    Default: 416068129208
+  Environment:
+    Type: String
+    Default: dev
+  EcsClusterName:
+    Description: Name of the ECS Cluster
+    Type: String 
+    Default: 'digimon-cluster'
   VPCID:
     Description: ID da VPC
     Type:  AWS::EC2::VPC::Id
@@ -52,37 +62,31 @@ Parameters:
     Description: CIDR da VPC para configuracao do SG dos servicos
     Type:  String
     Default: '0.0.0.0/0'
-    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
   PrivateSubnets:
     Type:  List<AWS::EC2::Subnet::Id>    
   SecurityGroupDefault: 
     Description: 'Securtity Group Default da Conta'
     Type: AWS::EC2::SecurityGroup::Id
-  ContainerPort:
-    Type: Number
-    Default: 80
-  LoadBalancerPort:
-    Type: Number
-    Default: 80
-  HealthCheckPath:
+  LoadBalancingCrossZoneEnabled:
+    Description: 'Enable Load Balancer Cross Zone'
     Type: String
-    Default: /actuator/health
-  # for autoscaling
-  MinContainers:
-    Type: Number
-    Default: 2
-  # for autoscaling
-  MaxContainers:
-    Type: Number
-    Default: 5
-  # target CPU utilization (%)
-  AutoScalingTargetValue:
-    Type: Number
-    Default: 90
-  ListenerContainerPort:
-    Description: Listening port for container
-    Type: Number
-    Default: 80
+    Default: 'false'
+    AllowedValues: [ 'true', 'false' ]
+  EnvironmentMachine:
+    Description: Variaveis de ambiente da maquina
+    Type: String
+  AppDynamicsAgentAccountAccessKey:
+    Description: Access Key do Agente do AppDynamics
+    Type: String
+  AppDynamicsControllerHostName:
+    Description: Hostname do AppDy por ambiente
+    Type: String
+  AppDynamicsAgentAccountName:
+    Description: Account name App Dynamics
+    Type: String
+  LoadBalancerARN:
+    Type: String
+    Default: ''
 
 Resources:
   CloudWatchLogGroup:
@@ -91,36 +95,52 @@ Resources:
       LogGroupName: !Sub "${FeatureName}-${MicroServiceName}"
       RetentionInDays: 7
 
-  Cluster:
-    Type: AWS::ECS::Cluster
-    Properties:
-      ClusterName: !Ref EcsClusterName
-      CapacityProviders:
-        - FARGATE_SPOT
-      DefaultCapacityProviderStrategy:
-        - CapacityProvider: FARGATE_SPOT
-          Weight: 1
-
   TaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    # Makes sure the log group is created before it is used.
-    DependsOn: CloudWatchLogGroup
+    Type: "AWS::ECS::TaskDefinition"
     Properties:
       ContainerDefinitions:
         - Name: !Sub ${ContainerName}
-          Image: !Sub ${Image}
+          Image: '416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi:latest'
           PortMappings:
             - ContainerPort: !Ref ListenerContainerPort
           Cpu: !Ref ContainerCpu
           Memory: !Ref ContainerMemory
           MemoryReservation: !Ref ContainerMemoryReservation
           Essential: true
+          Environment:
+            - Name: AWS_ACCESS_KEY_ID
+              Value: ""
+            - Name: AWS_SECRET_ACCESS_KEY
+              Value: ""
+            - Name: AWS_REGION
+              Value: "sa-east-1"
+            - Name: AWS_DEFAULT_REGION
+              Value: "sa-east-1"
+            - Name: APPDYNAMICS_AGENT_ACCOUNT_ACCESS_KEY
+              Value: !Ref AppDynamicsAgentAccountAccessKey
+            - Name: APPDYNAMICS_CONTROLLER_HOST_NAME
+              Value: !Ref AppDynamicsControllerHostName
+            - Name: APPDYNAMICS_AGENT_APPLICATION_NAME
+              Value: !Sub "DY5-${FeatureName}-${MicroServiceName}-${Environment}"
+            - Name: APPDYNAMICS_AGENT_TIER_NAME
+              Value: !Sub "DY5-${FeatureName}-${MicroServiceName}-${Environment}"
+            - Name: APPDYNAMICS_JAVA_AGENT_REUSE_NODE_NAME
+              Value: true
+            - Name: APPDYNAMICS_JAVA_AGENT_REUSE_NODE_NAME_PREFIX
+              Value: Container
+            - Name: APPDYNAMICS_AGENT_ACCOUNT_NAME
+              Value: !Ref AppDynamicsAgentAccountName
+            - Name: APPDYNAMICS_CONTROLLER_SSL_ENABLED
+              Value: true
+            - Name: APPDYNAMICS_CONTROLLER_PORT
+              Value: 443
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-region: !Sub "${AWS::Region}"
               awslogs-group: !Sub "${FeatureName}-${MicroServiceName}"
               awslogs-stream-prefix: !Sub "${FeatureName}-${MicroServiceName}"
+      Family: !Sub "family-${FeatureName}-${MicroServiceName}"
       NetworkMode: awsvpc
       Memory: !Ref ContainerMemoryReservation
       Cpu: !Ref ContainerCpu
@@ -128,7 +148,7 @@ Resources:
       TaskRoleArn: !Ref TaskExecutionRole
       RequiresCompatibilities:
         - "FARGATE"
-    
+    DependsOn: CloudWatchLogGroup
 
   ## For Fargate
   TaskExecutionRole:
@@ -175,6 +195,22 @@ Resources:
                   - 'ecs:ListTasks'
                   - 'ecs:DescribeContainerInstances'
                 Resource: '*'
+        - PolicyName: !Sub "${FeatureName}-${MicroServiceName}-passrole"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:container-instance/*'
+        - PolicyName: !Sub "${FeatureName}-${MicroServiceName}-passrole-2"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: !Sub 'arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${EcsClusterName}'
         - PolicyName: !Sub '${FeatureName}-${MicroServiceName}-cloudwatch'
           PolicyDocument:
             Version: '2012-10-17'
@@ -204,33 +240,6 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}'
 
-  Service:
-    DependsOn: Listener
-    Type: "AWS::ECS::Service"
-    Properties:
-      ServiceName: !Sub service-${FeatureName}-${MicroServiceName}
-      Cluster: !Ref EcsClusterName
-      DeploymentConfiguration:
-        MinimumHealthyPercent: 100
-        MaximumPercent: 200
-      DesiredCount: 1
-      HealthCheckGracePeriodSeconds: 10
-      LaunchType: FARGATE
-      PlatformVersion: '1.4.0'
-      LoadBalancers:
-        - ContainerName: !Sub ${ContainerName}
-          ContainerPort: !Ref ListenerContainerPort
-          TargetGroupArn: !Ref TargetGroup
-      SchedulingStrategy: REPLICA
-      TaskDefinition: !Ref TaskDefinition
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: ENABLED
-          SecurityGroups:
-            - !Ref SecurityGroupDefault
-            - !Ref SecurityGroup
-          Subnets: !Ref PrivateSubnets
-
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -250,10 +259,24 @@ Resources:
           Value: '5'
       TargetType: ip
 
-  DigimonAPIVpcLink:
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'nlb-${MicroServiceName}'
+      Type: network
+      Scheme: internal
+      LoadBalancerAttributes:
+        - Key: 'load_balancing.cross_zone.enabled'
+          Value: !Ref LoadBalancingCrossZoneEnabled
+      Subnets: !Ref PrivateSubnets
+      Tags:
+        - Key: LoadBalancerType
+          Value: VPCLink
+
+  DigimonVpcLink:
     Type: AWS::ApiGateway::VpcLink
     Properties:
-      Description: "VpcLink Validacao Limite"
+      Description: "VpcLink Digimon"
       Name: !Sub "${MicroServiceName}-vpc-link"
       TargetArns:
         - !Ref LoadBalancer
@@ -268,19 +291,32 @@ Resources:
       Port: !Ref ListenerContainerPort
       Protocol: TCP
 
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  Service:
+    DependsOn: Listener
+    Type: "AWS::ECS::Service"
     Properties:
-      Name: !Sub 'nlb-${MicroServiceName}'
-      Type: network
-      Scheme: internal
-      LoadBalancerAttributes:
-        - Key: 'load_balancing.cross_zone.enabled'
-          Value: 'false'
-      Subnets: !Ref PrivateSubnets
-      Tags:
-        - Key: LoadBalancerType
-          Value: VPCLink
+      ServiceName: !Sub service-${FeatureName}-${MicroServiceName}
+      Cluster: !Ref EcsClusterName
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+      DesiredCount: !Ref DesiredNumberOfTasks
+      HealthCheckGracePeriodSeconds: 10
+      LaunchType: FARGATE
+      PlatformVersion: '1.4.0'
+      LoadBalancers:
+        - ContainerName: !Sub ${ContainerName}
+          ContainerPort: !Ref ListenerContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      SchedulingStrategy: REPLICA
+      TaskDefinition: !Ref TaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref SecurityGroupDefault
+            - !Ref SecurityGroup
+          Subnets: !Ref PrivateSubnets
 
   ScalingRole:
     Type: "AWS::IAM::Role"
@@ -323,8 +359,7 @@ Resources:
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref ScalableTarget
       TargetTrackingScalingPolicyConfiguration:
-       # Keep things at or lower than 70% CPU utilization, for example
-        TargetValue: 70
+        TargetValue: 20
         ScaleInCooldown: 120
         ScaleOutCooldown: 60
         PredefinedMetricSpecification:
