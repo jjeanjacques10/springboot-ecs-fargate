@@ -2,10 +2,11 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: amazoncorretto:11
+      java: corretto11
   pre_build:
     commands:
       - echo In the pre_build phase...
+      - java -version
       - cd app && mvn clean install # Creates a jar file
       - aws --version
       - ECR_REPO="416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi"
