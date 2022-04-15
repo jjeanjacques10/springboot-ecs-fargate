@@ -25,6 +25,7 @@ Use file [template.yml](template.yml) to create that resources:
 - Service
 - Security Group
 - Load Balancer
+- CloudWatch
 
 ## CodeBuild Notes
 

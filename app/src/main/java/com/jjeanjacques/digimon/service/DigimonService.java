@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class DigimonService {
@@ -27,4 +28,8 @@ public class DigimonService {
         return digimonRepositoy.save(digimonEntity);
     }
 
+    public Digimon findById(Long id) {
+        return digimonRepositoy.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Digimon not found"));
+    }
 }

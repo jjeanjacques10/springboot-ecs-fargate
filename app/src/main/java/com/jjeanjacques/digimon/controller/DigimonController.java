@@ -22,6 +22,12 @@ class DigimonController {
         return ResponseEntity.ok(digimons);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Digimon> getDigimon(@PathVariable Long id) {
+        Digimon digimon = digimonService.findById(id);
+        return ResponseEntity.ok(digimon);
+    }
+
     @PostMapping
     public ResponseEntity<Digimon> save(@RequestBody DigimonDTO digimonDTO) {
         Digimon digimon = digimonService.create(digimonDTO);
