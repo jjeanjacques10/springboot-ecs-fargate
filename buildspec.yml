@@ -2,16 +2,17 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: corretto11
+      java: amazoncorretto:11
   pre_build:
     commands:
       - echo In the pre_build phase...
       - cd app && mvn clean install # Creates a jar file
+      - aws --version
+      - ECR_REPO="416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi"
+      - $(aws ecr get-login --no-include-email --region us-east-1) # Login to AWS ECR
   build:
     commands:
       - echo Build started on `date`
-      - $(aws ecr get-login --no-include-email --region $AWS_REGION) # Login to AWS ECR
-      - ECR_REPO="416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi"
       - docker build -t digimonapi .
       - docker tag digimonapi:latest $ECR_REPO:latest
   post_build:
