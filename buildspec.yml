@@ -9,6 +9,7 @@ phases:
       - java -version
       - aws --version
       - ECR_REPO="416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi"
+      - $S3_BUCKET="s3://codepipeline-us-east-1-169465196910/digimon-springboot-p/"
       - $(aws ecr get-login --no-include-email --region us-east-1) # Login to AWS ECR
       - cd app && mvn clean install # Creates a jar file
   build:
