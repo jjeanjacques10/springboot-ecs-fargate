@@ -21,7 +21,7 @@ phases:
     commands:
       - echo Build completed on `date`
       - docker push $ECR_REPO:latest
-      - cd .. && aws cloudformation package --template-file template.yaml --s3-bucket $S3_BUCKET --output-template-file template-export.yml
+      - cd .. && aws cloudformation package --template-file template.yml --s3-bucket $S3_BUCKET --output-template-file template-export.yml
 artifacts:
   files:
     - template-export.yml
