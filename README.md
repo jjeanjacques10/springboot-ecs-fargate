@@ -18,7 +18,19 @@ docker run -d -p 80:80 -t digimonapi:latest
 
 ## Cloudformation
 
-Use file [template.yml](template.yml)
+Use file [template.yml](template.yml) to create that resources:
+
+- Cluster
+- TaskDefinition
+- Service
+- Security Group
+- Load Balancer
+
+## CodeBuild Notes
+
+- Add ECR permissions to codeBuild.
+- Error - "You have reached your pull rate limit"
+  - Use: [ECR Public Repository](https://gallery.ecr.aws/socar/adoptopenjdk/openjdk11)
 
 ---
 Developed by [Jean Jacques Barros](https://github.com/jjeanjacques10)
