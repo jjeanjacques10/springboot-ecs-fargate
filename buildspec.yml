@@ -2,8 +2,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: openjdk11
-      docker: 18
+      java: corretto11
   pre_build:
     commands:
       - echo In the pre_build phase...
@@ -24,3 +23,7 @@ phases:
 artifacts:
   files:
     - template-export.yml
+
+cache:
+  paths:
+    - '/root/.m2/**/*' # Caches maven dependencies for a quicker build
