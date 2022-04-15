@@ -7,10 +7,10 @@ phases:
     commands:
       - echo In the pre_build phase...
       - java -version
-      - cd app && mvn clean install # Creates a jar file
       - aws --version
       - ECR_REPO="416068129208.dkr.ecr.us-east-1.amazonaws.com/digimonapi"
       - $(aws ecr get-login --no-include-email --region us-east-1) # Login to AWS ECR
+      - cd app && mvn clean install # Creates a jar file
   build:
     commands:
       - echo Build started on `date`
@@ -20,7 +20,7 @@ phases:
     commands:
       - echo Build completed on `date`
       - docker push $ECR_REPO:latest
-      - aws cloudformation package --template-file template.yaml --s3-bucket $S3_BUCKET --output-template-file template-export.yml
+      - cd .. && aws cloudformation package --template-file template.yaml --s3-bucket $S3_BUCKET --output-template-file template-export.yml
 artifacts:
   files:
     - template-export.yml
