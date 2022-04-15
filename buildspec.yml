@@ -6,8 +6,7 @@ phases:
   pre_build:
     commands:
       - echo In the pre_build phase...
-      - cd /app
-      - mvn clean install # Creates a jar file
+      - cd app && mvn clean install # Creates a jar file
   build:
     commands:
       - echo Build started on `date`
