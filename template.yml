@@ -260,6 +260,8 @@ Resources:
       # LaunchType: FARGATE
       CapacityProviderStrategy:
         - CapacityProvider: FARGATE_SPOT
+          Weight: 5
+        - CapacityProvider: FARGATE
           Weight: 1
       PlatformVersion: '1.4.0'
       LoadBalancers:

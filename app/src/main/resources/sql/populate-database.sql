@@ -1,0 +1,9 @@
+INSERT INTO DIGIMON (id, name, power) VALUES (1, 'Koromon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (2, 'Agumon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (3, 'Greymon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (4, 'Tsunomon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (5, 'Gabumon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (6, 'Greymon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (7, 'Tokomon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (8, 'Patamon', 100);
+INSERT INTO DIGIMON (id, name, power) VALUES (9, 'Angemon', 100);

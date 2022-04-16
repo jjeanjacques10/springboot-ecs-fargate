@@ -21,7 +21,6 @@ public class DigimonService {
 
     public Digimon create(DigimonDTO digimon) {
         Digimon digimonEntity = Digimon.builder()
-                .id(digimon.getId())
                 .name(digimon.getName())
                 .power(digimon.getPower()).build();
 
