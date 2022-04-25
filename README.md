@@ -27,6 +27,10 @@ Use file [template.yml](template.yml) to create that resources:
 - Load Balancer
 - CloudWatch
 
+## Articles 
+
+- https://jjeanjacques10.medium.com/utilizando-aws-fargate-spot-para-economizar-at%C3%A9-70-em-aplica%C3%A7%C3%B5es-ecs-565231aedf8a
+
 ## CodeBuild Notes
 
 - Add ECR permissions to codeBuild.
