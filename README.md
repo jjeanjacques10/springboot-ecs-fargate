@@ -1,5 +1,30 @@
 # Spring Boot + ECS + Fargate
 
+<p align="center">
+    <img src="https://miro.medium.com/max/1400/1*j1Yx6pVAu8rv_wFOD8sIAg.png" width="750"/>
+    <br />
+    <br />
+    <a href="https://github.com/jjeanjacques10/springboot-ecs-fargate/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/jjeanjacques10/springboot-ecs-fargate/issues">Request Feature</a>
+</p>
+
+<p align="center">
+   <a href="https://www.linkedin.com/in/jjean-jacques10/">
+      <img alt="Jean Jacques Barros" src="https://img.shields.io/badge/-JeanJacquesBarros-D66413?style=flat&logo=Linkedin&logoColor=white" />
+   </a>
+  <img alt="Repository size" src="https://img.shields.io/github/repo-size/jjeanjacques10/extract-mangajj-lambda?color=D66413">
+
+  <a href="https://github.com/jjeanjacques10/springboot-ecs-fargate/commits/master">
+    <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/jjeanjacques10/extract-mangajj-lambda?color=D66413">
+  </a>
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-D66413">
+  <img alt="GitHub Pull Requests" src="https://img.shields.io/github/issues-pr/jjeanjacques10/extract-mangajj-lambda?color=D66413" />
+  <a href="https://github.com/jjeanjacques10/springboot-ecs-fargate/stargazers">
+    <img alt="Stargazers" src="https://img.shields.io/github/stars/jjeanjacques10/extract-mangajj-lambda?color=D66413&logo=github">
+  </a>
+</p>
+
 Integration between Spring Boot and AWS Elastic Container Service (Fargate)
 
 ## Config Docker
