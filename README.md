@@ -52,9 +52,25 @@ Use file [template.yml](template.yml) to create that resources:
 - Load Balancer
 - CloudWatch
 
+``` yml
+Service:
+  Type: "AWS::ECS::Service"
+  Properties:
+    ServiceName: !Sub service-${FeatureName}-${MicroServiceName}
+    <...>
+    CapacityProviderStrategy:
+      - CapacityProvider: FARGATE_SPOT
+        Weight: 5
+      - CapacityProvider: FARGATE
+        Weight: 1
+    <...>
+```
+
 ## Articles 
 
-- https://jjeanjacques10.medium.com/utilizando-aws-fargate-spot-para-economizar-at%C3%A9-70-em-aplica%C3%A7%C3%B5es-ecs-565231aedf8a
+It's my article about ECS Fargate using Spot instance.
+
+- [Utilizando AWS Fargate Spot para economizar até 70% em aplicações ECS](https://jjeanjacques10.medium.com/utilizando-aws-fargate-spot-para-economizar-at%C3%A9-70-em-aplica%C3%A7%C3%B5es-ecs-565231aedf8a)
 
 ## CodeBuild Notes
 
